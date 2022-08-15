@@ -54,10 +54,17 @@
             <version>1.5.7</version>
         </dependency>
 
+
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>ffmpeg-platform</artifactId>
             <version>5.0-1.5.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv-platform</artifactId>
+            <version>1.5.7</version>
         </dependency>
 
 

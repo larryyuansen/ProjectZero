@@ -81,8 +81,9 @@ public class FlvController
     {
         if (url == null || "".equals(url))
         {
-            url = "/root/jar/mp4Test.mp4";
-//            url = "/Users/magi_0/Desktop/Screen_Shot/01.mp4";
+            //            url = "/root/jar/mp4Test.mp4";
+            //            url = "/Users/magi_0/Desktop/Screen_Shot/01.mp4";
+            url = "rtmp://127.0.0.1:1935/hls/123";
         }
         id = (int) putVideoPath(url).get(AjaxResult.DATA_TAG);
 
@@ -114,9 +115,10 @@ public class FlvController
         {
             String            path              = pathMap.get(id);
             PipedOutputStream pipedOutputStream = outputStreamMap.get(id);
+
             new Thread(() -> {
                 MediaVideoTransfer mediaVideoTransfer = new MediaVideoTransfer();
-                mediaVideoTransfer.setOutputStream(pipedOutputStream);
+                mediaVideoTransfer.setOutputStream(outputStream);
                 mediaVideoTransfer.setRtspTransportType("tcp");
                 mediaVideoTransfer.setRtspUrl(path);
                 mediaVideoTransfer.live();
