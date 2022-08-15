@@ -1,8 +1,10 @@
 package com.example.demo.Controller;
 
 import com.example.demo.Service.AjaxResult;
+import com.example.demo.Service.MediaImageTransfer;
 import com.example.demo.Service.MediaVideoTransfer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +31,9 @@ public class FlvController
     ConcurrentHashMap<Integer, String>            pathMap         = new ConcurrentHashMap<>();
     ConcurrentHashMap<Integer, PipedOutputStream> outputStreamMap = new ConcurrentHashMap<>();
     ConcurrentHashMap<Integer, PipedInputStream>  inputStreamMap  = new ConcurrentHashMap<>();
+
+    @Autowired
+    MediaImageTransfer mediaImageTransfer;
 
     public static void main(String[] args) throws FileNotFoundException
     {
@@ -109,6 +114,23 @@ public class FlvController
         }
     }
 
+    @RequestMapping("/getImage")
+    public void getImage(
+            @RequestParam String url, @RequestParam String storePath, @RequestParam Long id)
+    {
+        url       = url == null ? "rtmp://localhost:1935/hls/123" : url;
+        storePath = storePath == null ? "/Users/magi_0/Desktop/工作/EasyAI/TestStore" : storePath;
+        id        = id == null ? 101 : id;
+
+        try
+        {
+            mediaImageTransfer.rtspToImage(url, 1.0, storePath, id);
+        } catch (Exception e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void write(int id, OutputStream outputStream)
     {
         try
@@ -130,6 +152,7 @@ public class FlvController
             log.error(e.getMessage(), e);
         }
     }
+
 
     private void print(InputStream inputStream, OutputStream outputStream) throws IOException
     {
