@@ -4,6 +4,7 @@ package com.example.demo.Service;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.*;
 
 import java.io.OutputStream;
@@ -34,7 +35,7 @@ public class MediaVideoTransfer
     private boolean isStart = false;
 
     /**
-     * 开启获取rtsp流
+     * 开始获取rtsp流
      */
     public void live()
     {
@@ -63,6 +64,7 @@ public class MediaVideoTransfer
         {
             grabber = FFmpegFrameGrabber.createDefault(rtsp);
             grabber.setOption("rtsp_transport", rtspTransportType);
+            grabber.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
             grabber.start();
             isStart = true;
 

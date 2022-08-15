@@ -8,12 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+
+
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -31,17 +33,12 @@ public class FlvController
     ConcurrentHashMap<Integer, String>            pathMap         = new ConcurrentHashMap<>();
     ConcurrentHashMap<Integer, PipedOutputStream> outputStreamMap = new ConcurrentHashMap<>();
     ConcurrentHashMap<Integer, PipedInputStream>  inputStreamMap  = new ConcurrentHashMap<>();
-
     @Autowired
     MediaImageTransfer mediaImageTransfer;
-
-    public static void main(String[] args) throws FileNotFoundException
-    {
-        FlvController indexController = new FlvController();
-        AjaxResult    ajaxResult      = indexController.putVideoPath("/Users/magi_0/Desktop/Screen_Shot/00.mov");
-        indexController.write((int) ajaxResult.get("data"),
-                              new FileOutputStream("/Users/magi_0/Desktop/Screen_Shot/00.flv"));
-    }
+//    private ThreadFactory      namedFactory = new ThreadFactoryBuilder ().setNameFormat("线程-demo-%d").build();
+//    private ThreadPoolExecutor pool         = new ThreadPoolExecutor(2, 4, 60, TimeUnit.SECONDS,
+//                                                                     new ArrayBlockingQueue<>(10), namedFactory,
+//                                                                     new ThreadPoolExecutor.AbortPolicy());
 
     @GetMapping("/")
     public String indexView()
@@ -92,12 +89,12 @@ public class FlvController
         }
         id = (int) putVideoPath(url).get(AjaxResult.DATA_TAG);
 
-
-        log.info("进来了" + id);
+        log.info("id: " + id);
         String path     = pathMap.get(id);
         String fileName = UUID.randomUUID().toString();
         /* - 测试 - 用于测试的时候，本地文件读取走这里  - START*/
-        if (path.endsWith(".mp4"))
+        String prefix = ".mp4";
+        if (path.endsWith(prefix))
         {
             String[] split = new File(path).getName().split("\\.");
             fileName = split[0];
@@ -114,22 +111,6 @@ public class FlvController
         }
     }
 
-    @RequestMapping("/getImage")
-    public void getImage(
-            @RequestParam String url, @RequestParam String storePath, @RequestParam Long id)
-    {
-        url       = url == null ? "rtmp://localhost:1935/hls/123" : url;
-        storePath = storePath == null ? "/Users/magi_0/Desktop/工作/EasyAI/TestStore" : storePath;
-        id        = id == null ? 101 : id;
-
-        try
-        {
-            mediaImageTransfer.rtspToImage(url, 1.0, storePath, id);
-        } catch (Exception e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
 
     private void write(int id, OutputStream outputStream)
     {

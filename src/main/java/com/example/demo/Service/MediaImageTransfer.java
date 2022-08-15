@@ -1,6 +1,7 @@
 package com.example.demo.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
@@ -20,87 +21,83 @@ import org.springframework.stereotype.Service;
 public class MediaImageTransfer
 {
 
-    boolean running = false;
-
     public static void main(String[] args)
     {
-        //        String url = "/Users/magi_0/Desktop/Screen_Shot/01.mp4";
-        //        String url = "rtmp://localhost:1935/hls/123";
-        String url = "http://120.77.159.92:19021/getVideo";
-
+        //                String url = "/Users/magi_0/Desktop/Screen_Shot/01.mp4";
+        String url       = "rtmp://localhost:1935/hls/123";
         String storePath = "/Users/magi_0/Desktop/工作/EasyAI/TestStore";
 
-        try
-        {
-            MediaImageTransfer mediaImageTransfer = new MediaImageTransfer();
-            mediaImageTransfer.rtspToImage(url, 1.0, storePath, 101L);
-        } catch (Exception e)
-        {
-            throw new RuntimeException(e);
-        }
+        MediaImageTransfer mediaImageTransfer = new MediaImageTransfer();
+        mediaImageTransfer.rtspToImage(url, 30, storePath, 101L);
     }
 
     public void rtspToImage(
-            String url, Double grabRate, String storePath, Long id)
+            String url, Integer grabRate, String storePath, Long id)
     {
         // 采集/抓取器
-        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(url);
+        FFmpegFrameGrabber grabbers = new FFmpegFrameGrabber(url);
         // 图片转换工具
         OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
 
         // 传输格式
-        //        grabber.setPixelFormat(avutil.AV_PIX_FMT_BGR24);
-        grabber.setOption("buffer_size", "1024000");
+        grabbers.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
+        grabbers.setOption("buffer_size", "1024000");
         // socket网络超时时间
         // 设置打开协议tcp / udp
-        grabber.setOption("rtsp_transport", "tcp");
+        grabbers.setOption("rtsp_transport", "tcp");
         // 首选TCP进行RTP传输
-        grabber.setOption("rtsp_flags", "prefer_tcp");
+        grabbers.setOption("rtsp_flags", "prefer_tcp");
         // 设置超时时间
         // -stimeout 的单位是us 微秒(1秒=1*1000*1000微秒)。
-        grabber.setOption("stimeout", "5*1000*1000");
+        grabbers.setOption("stimeout", "5*1000*1000");
+
+        grabbers.setFrameRate(30);
+        log.info("rate: " + grabbers.getFrameRate());
 
         // 设置默认长宽
-        grabber.setImageWidth(grabber.getImageWidth());
-        grabber.setImageHeight(grabber.getImageHeight());
+        grabbers.setImageWidth(grabbers.getImageWidth());
+        grabbers.setImageHeight(grabbers.getImageHeight());
+
 
         try
         {
             // 开始抓取
-            grabber.start();
-            running = true;
+            grabbers.start();
 
 
+            Frame grabFrames  = grabbers.grabImage();
             int   fileCounter = 0;
-            Frame grabFrames  = grabber.grabKeyFrame();
-            while (grabFrames != null && running)
+            while (grabFrames != null)
             {
-                /* 转换图片 */
-                Mat mat = converter.convertToMat(grabFrames);
+                if (fileCounter % grabRate == 0)
+                {
+                    /* 转换图片 */
+                    Mat mat = converter.convertToMat(grabFrames);
 
-                /* 本地存图 */
-                StringBuffer sb = new StringBuffer(storePath + "/" + id + "_" + (fileCounter++) + ".jpg");
-                opencv_imgcodecs.imwrite(sb.toString(), mat);
-
+                    StringBuffer sb = new StringBuffer(storePath + "/" + id + "_" + (fileCounter++) + ".jpg");
+                    /* 本地存图 */
+                    opencv_imgcodecs.imwrite(sb.toString(), mat);
+                }
                 /* 抓取下一帧 */
-                grabFrames = grabber.grabKeyFrame();
+                grabFrames = grabbers.grabImage();
+
             }
-        } catch (FFmpegFrameGrabber.Exception e)
+        } catch (Exception e)
         {
-            throw new RuntimeException(e);
+            log.error("Converter error: " + e);
         } finally
         {
             // 关闭抓取
-            shutdown(grabber);
+            close(grabbers);
+            log.info("Grabber closed.");
         }
     }
 
-    public void shutdown(FFmpegFrameGrabber grabber)
+    public void close(FFmpegFrameGrabber grabbers)
     {
         try
         {
-            grabber.close();
-            log.info("Grabber closed.");
+            grabbers.close();
         } catch (FrameGrabber.Exception e)
         {
             throw new RuntimeException(e);
