@@ -4,8 +4,11 @@ package com.example.demo.Service;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.*;
+import org.bytedeco.opencv.opencv_core.IplImage;
 
+import javax.swing.*;
 import java.io.OutputStream;
 
 /**
@@ -33,6 +36,70 @@ public class MediaVideoTransfer
 
     private boolean isStart = false;
 
+    public static void rtspToImage(String url, Integer grabRate, OutputStream outStream) throws Exception
+    {
+        // 采集/抓取器
+        FFmpegFrameGrabber grabbers = new FFmpegFrameGrabber(url);
+        // 图片转换工具
+        OpenCVFrameConverter.ToIplImage converter = new OpenCVFrameConverter.ToIplImage();
+
+        // 传输格式
+        grabbers.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
+        grabbers.setOption("buffer_size", "1024000");
+        // socket网络超时时间
+        // 设置打开协议tcp / udp
+        grabbers.setOption("rtsp_transport", "tcp");
+        // 首选TCP进行RTP传输
+        grabbers.setOption("rtsp_flags", "prefer_tcp");
+        // 设置超时时间
+        // -stimeout 的单位是us 微秒(1秒=1*1000*1000微秒)。
+        grabbers.setOption("stimeout", "5*1000*1000");
+
+        // 设置默认长宽
+        grabbers.setImageWidth(Math.min(grabbers.getImageWidth(), 1280));
+        grabbers.setImageHeight(Math.min(grabbers.getImageHeight(), 720));
+
+        /* logger */
+        log.info(String.format(
+                "stream: " + grabbers.getImageHeight() + ":" + grabbers.getImageWidth() + ":" + grabbers.getFormat()));
+
+        // 开始抓取
+        grabbers.start();
+        Frame grabFrames = grabbers.grab();
+
+        // 监视器 (监视抓取)
+        CanvasFrame frames = new CanvasFrame("camera", CanvasFrame.getDefaultGamma() / grabbers.getGamma());
+        frames.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frames.setAlwaysOnTop(true);
+
+        while (grabFrames != null)
+        {
+            /* 转换图片 */
+            IplImage grabbedImages = converter.convert(grabFrames);
+
+            /* 监视器展示 */
+            frames.showImage(grabFrames);
+
+            /* 本地存图 */
+            /* opencv_imgcodecs.cvSaveImage("hello.jpg", grabbedImages); */
+            
+            /* 等待 */
+            Thread.sleep(1000);
+
+            /* 抓取下一帧 */
+            if (Integer.valueOf(0).equals(grabRate))
+            {
+                grabFrames = grabbers.grabKeyFrame();
+            } else
+            {
+                grabFrames = grabbers.grabAtFrameRate();
+            }
+        }
+
+        // 关闭抓取
+        grabbers.close();
+        log.info("Grabber closed.");
+    }
 
     /**
      * 开启获取rtsp流
