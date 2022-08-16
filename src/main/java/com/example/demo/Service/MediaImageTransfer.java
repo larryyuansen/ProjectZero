@@ -63,9 +63,9 @@ public class MediaImageTransfer
         {
             // 开始抓取
             grabbers.start();
-
-
             Frame grabFrames  = grabbers.grabImage();
+
+            // 图片按帧率抓取
             int   fileCounter = 0;
             while (grabFrames != null)
             {
@@ -74,13 +74,12 @@ public class MediaImageTransfer
                     /* 转换图片 */
                     Mat mat = converter.convertToMat(grabFrames);
 
-                    StringBuffer sb = new StringBuffer(storePath + "/" + id + "_" + (fileCounter++) + ".jpg");
                     /* 本地存图 */
-                    opencv_imgcodecs.imwrite(sb.toString(), mat);
+                    opencv_imgcodecs.imwrite(storePath + "/" + id + "_" + fileCounter / grabRate + ".jpg", mat);
                 }
                 /* 抓取下一帧 */
                 grabFrames = grabbers.grabImage();
-
+                fileCounter++;
             }
         } catch (Exception e)
         {
